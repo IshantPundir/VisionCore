@@ -1,0 +1,24 @@
+# Rust build artifacts
+/target/
+/**/target/
+
+# Shared library directory (sub_services)
+# Uncomment the line below if you don't want to track the .so files
+/sub_services/
+
+# Dependency lock file (optional, depending on your preference)
+# Cargo.lock
+
+# Editor and OS-specific files
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Temporary files
+*.tmp
+*.bak
+
+# Logs and other generated files
+*.log

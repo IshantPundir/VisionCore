@@ -1,0 +1,9 @@
+[package]
+name = "visioncore"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.97"
+libloading = "0.8.6"
+visioncore-plugin = { path = "../visioncore-plugin" }
