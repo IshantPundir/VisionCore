@@ -1,61 +1,68 @@
-use tract_tflite::prelude::{Framework, TypedModel}; // Use Tensor from tract-tflite
-use tract_core::internal::{Tensor,TractResult};
-use tract_core::ops::submodel::InnerModel;
-use tract_core::model::TypedFact;
-use tract_core::plan::SimplePlan;
-use tract_core::prelude::tvec;
 use std::path::Path;
 
+use tflite::context::TensorInfo;
+use tflite::{FlatBufferModel, Interpreter, InterpreterBuilder, Result};
+use tflite::ops::builtin::BuiltinOpResolver;
 use visioncore_plugin::{Frame, Face};
 use crate::utils::{normalize_image, pad_frame, resize_image};
 
-pub struct BlazeFace {
-    plan: SimplePlan<TypedFact, Box<dyn tract_tflite::prelude::TypedOp>, TypedModel>,
+pub struct BlazeFace<'a> {
+    interpreter: Interpreter<'a, BuiltinOpResolver>,
+    input_details: Vec<TensorInfo>,
 }
 
-impl BlazeFace {
-    pub fn new(model_path: &Path) -> TractResult<Self> {
-        println!("Loading model from: {}", model_path.display());
-        // Create a TFLite builder
-        let builder = tract_tflite::tflite();
+impl<'a> BlazeFace<'a> {
+    pub fn new(model_path: &Path) -> Result<Self> {
+        // Load the model
+        let model = FlatBufferModel::build_from_file(model_path)
+            .map_err(|e| format!("Failed to load model: {:?}", e)).expect("Failed to load model");
+        let resolver = BuiltinOpResolver::default();
 
-        // Load the model as a Graph<InferenceFact, Box<dyn InferenceOp>>
-        let inference_model = builder.model_for_path(model_path)?;
-        println!("Inference model loaded");
-        // Convert to TypedModel
-        let model = inference_model.as_typed().to_owned();
-        println!("Model converted to TypedModel");
-        // Optimize the model
-        let optimized_model = model.into_optimized()?;
-        println!("Model optimized");
+        // Create the interpreter builder
+        let builder = InterpreterBuilder::new(model, resolver)
+            .map_err(|e| format!("Failed to create interpreter builder: {:?}", e)).expect("Failed to create interpreter builder");
+        let mut interpreter = builder.build()
+            .map_err(|e| format!("Failed to build interpreter: {:?}", e)).expect("Failed to build interpreter");
+
+        // Allocate tensors for inference
+        interpreter.allocate_tensors()
+            .map_err(|e| format!("Failed to allocate tensors: {:?}", e)).expect("Failed to allocate tensors");
         
-        // Create a runnable plan
-        let plan = optimized_model.into_runnable()?;
-        println!("Plan created");
-        Ok(BlazeFace { plan })
+        // Get the input tensor details
+        let input_details = interpreter.get_input_details().expect("Failed to get input details");
+        assert_eq!(input_details.len(), 1, "Expected exactly one input tensor");
+        assert_eq!(input_details[0].dims, vec![1, 128, 128, 3], "Input tensor shape mismatch");
+        
+        Ok(BlazeFace { interpreter, input_details })
     }
 
-    pub fn detect_faces(&self, frame: &Frame) -> Vec<Face> {
+    pub fn detect_faces(&mut self, frame: &Frame) -> Vec<Face> {
         // Pre-process the frame
         let padded_image = pad_frame(frame);
         let resized_image = resize_image(&padded_image, 128);
-        let tensor = normalize_image(&resized_image);
+        let normalized_image = normalize_image(&resized_image);
     
-        // Prepare the input tensor
-        let input_shape: [usize; 4] = tensor.shape; // [1, 128, 128, 3]
-        let input_data = tensor.data;
-        let input_tensor = Tensor::from_shape(&input_shape, &input_data)
-            .expect("Failed to create input tensor");
-        let input = tvec![input_tensor.into()]; // Convert to TValue using IntoTValue
+        // Get the input tensor index
+        let input_index = self.interpreter.inputs()[0];
+        // println!("Input index: {:?}", input_index);
+    
+        // Get the tensor buffer as a mutable byte slice
+        let input_tensor_bytes: &mut [f32] = self.interpreter.tensor_data_mut(input_index)
+            .expect("Failed to get input tensor data");
+
+        // println!("Input tensor bytes: {:?}", input_tensor_bytes.len());
+    
+        // Verify the buffer size
+        let expected_byte_size = 1 * 128 * 128 * 3;
+        assert_eq!(input_tensor_bytes.len(), expected_byte_size, "Input tensor byte size mismatch");
+
+        // Copy the input data into the tensor buffer
+        input_tensor_bytes.copy_from_slice(&normalized_image.data);
+        
     
         // Run inference
-        let outputs = self.plan.run(input).expect("Inference failed");
-    
-        // Debug: Print output shapes
-        let deltas = &outputs[0];
-        let scores = &outputs[1];
-        println!("Deltas shape: {:?}", deltas.shape());
-        println!("Scores shape: {:?}", scores.shape());
+        self.interpreter.invoke()
+            .expect("Inference failed");
     
         // TODO: Post-process the outputs to get faces
         let faces = vec![Face {
