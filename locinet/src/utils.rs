@@ -1,6 +1,23 @@
 use image::{imageops, ImageBuffer, Rgb};
 use visioncore_plugin::Frame;
 
+#[derive(Debug)]
+pub struct ImageTensor {
+    pub data: Vec<f32>,
+    pub shape: [usize; 4],
+}
+
+impl ImageTensor {
+    pub fn new(data: Vec<f32>, batch_size: usize, height: usize, width: usize, channels: usize) -> Self {
+        assert_eq!(
+            data.len(),
+            batch_size * height * width * channels,
+            "Data length must match the shape"
+        );
+        
+        Self { data, shape: [batch_size, height, width, channels] }
+    }
+}
 
 pub fn pad_frame(frame: &Frame) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
     let (width, height) = (frame.width, frame.height);
@@ -39,16 +56,15 @@ pub fn resize_image(image: &ImageBuffer<Rgb<u8>, Vec<u8>>, target_size: u32) -> 
         target_size, target_size,
         imageops::FilterType::Nearest);
 
-    
     resized_image
 }
 
 
-pub fn normalize_image(image: &ImageBuffer<Rgb<u8>, Vec<u8>>) -> Vec<f32> {
-    let mut data: Vec<f32> = image
+pub fn normalize_image(image: &ImageBuffer<Rgb<u8>, Vec<u8>>) -> ImageTensor {
+    let data: Vec<f32> = image
         .pixels()
         .flat_map(|p| p.0.iter().map(|&v| v as f32 / 255.0))
         .collect();
 
-    data
+    ImageTensor::new(data, 1, image.height() as usize, image.width() as usize, 3)
 }

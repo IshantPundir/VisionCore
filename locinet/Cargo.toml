@@ -8,4 +8,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 image = "0.25.6"
+tract-core = "0.21.11"
+tract-tflite = "0.21.11"
 visioncore-plugin = { path = "../visioncore-plugin" }

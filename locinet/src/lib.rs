@@ -5,12 +5,12 @@ mod blazeface;
 use visioncore_plugin::{Frame, Landmark, Face, PluginInterface};
 use blazeface::BlazeFace;
 use std::sync::OnceLock;
-
+use std::path::Path;
 // Global BlazeFace instance (initialized once)
 static BLAZEFACE: OnceLock<BlazeFace> = OnceLock::new();
 
 fn get_blazeface() -> &'static BlazeFace {
-    BLAZEFACE.get_or_init(|| BlazeFace::new())
+    BLAZEFACE.get_or_init(|| BlazeFace::new(Path::new("/home/ishant/Projects/OsmOS/VisionCore/locinet/models/face_detector.tflite")).expect("Failed to load BlazeFace model!"))
 }
 
 // Dummy implementation of detect_landmarks (unchanged for now)
@@ -33,7 +33,7 @@ pub unsafe extern "C" fn detect_landmarks(frame: Frame, num_landmarks: *mut usiz
 #[no_mangle]
 pub unsafe extern "C" fn detect_faces(frame: Frame, num_faces: *mut usize) -> *mut Face {
     let blazeface = get_blazeface();
-    let (faces, _padded_image) = blazeface.detect_faces(&frame);
+    let faces = blazeface.detect_faces(&frame);
     // println!("Detected {} faces", faces.len());
     // println!("Padded image dimensions: {}x{}", _padded_image.width(), _padded_image.height());
     *num_faces = faces.len();
