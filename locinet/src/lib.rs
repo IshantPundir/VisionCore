@@ -1,4 +1,7 @@
+mod utils;
 use visioncore_plugin::{Frame, Landmark, Face, PluginInterface};
+use utils::pad_frame;
+
 
 // Dummy implementation of detect_landmarks
 #[unsafe(no_mangle)]
@@ -20,7 +23,15 @@ pub unsafe extern "C" fn detect_landmarks(frame: Frame, num_landmarks: *mut usiz
 // Dummy implementation of detect_faces
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn detect_faces(frame: Frame, num_faces: *mut usize) -> *mut Face {
-    println!("Processing frame: {:?}", frame.data);
+    // Pad the frame to 1:1 aspect ratio
+    let padded_frame = pad_frame(&frame);
+
+    println!(
+        "Original image shape: {}x{} \nPadded size: {}x{}",
+        frame.height, frame.width,
+        padded_frame.height(), padded_frame.width()
+    );
+
     // Simulate 1 face
     let count = 1;
     let faces = Box::new([Face { x: 100.0, y: 100.0, width: 200.0, height: 200.0 }; 1]);
