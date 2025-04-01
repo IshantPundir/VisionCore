@@ -141,12 +141,11 @@ pub fn main() -> anyhow::Result<()> {
             buffer.data.clone()
         };
 
-
         // Call detect faces!
         if let Some(faces) = locinet.detect_faces(&frame) {
             println!("Detected {} faces:", faces.len());
         }
-    }    
+    }
     // // Simulate a frame (dummy RGB data)
     // let dummy_frame_data: Vec<u8> = vec![255; 640 * 480 * 3]; // 640x480 RGB frame
     // let frame = Frame {

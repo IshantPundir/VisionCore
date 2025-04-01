@@ -1,6 +1,5 @@
-use visioncore_plugin::Frame;
-
 use image::{ImageBuffer, Rgb};
+use visioncore_plugin::Frame;
 
 
 pub fn pad_frame(frame: &Frame) -> ImageBuffer<Rgb<u8>, Vec<u8>> {

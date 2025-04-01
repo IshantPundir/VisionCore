@@ -1,12 +1,21 @@
+// mod visioncore_plugin;
 mod utils;
+mod blazeface;
+
 use visioncore_plugin::{Frame, Landmark, Face, PluginInterface};
-use utils::pad_frame;
+use blazeface::BlazeFace;
+use std::sync::OnceLock;
 
+// Global BlazeFace instance (initialized once)
+static BLAZEFACE: OnceLock<BlazeFace> = OnceLock::new();
 
-// Dummy implementation of detect_landmarks
-#[unsafe(no_mangle)]
+fn get_blazeface() -> &'static BlazeFace {
+    BLAZEFACE.get_or_init(|| BlazeFace::new())
+}
+
+// Dummy implementation of detect_landmarks (unchanged for now)
+#[no_mangle]
 pub unsafe extern "C" fn detect_landmarks(frame: Frame, num_landmarks: *mut usize) -> *mut Landmark {
-    // Simulate 68 landmarks (common for face detection)
     let count = 68;
     let mut landmarks = Box::new([Landmark { x: 0.0, y: 0.0, z: 0.0 }; 68]);
     for i in 0..count {
@@ -14,35 +23,28 @@ pub unsafe extern "C" fn detect_landmarks(frame: Frame, num_landmarks: *mut usiz
             x: (i as f32) * 1.0,
             y: (i as f32) * 2.0,
             z: (i as f32) * 3.0,
-        };  
+        };
     }
     *num_landmarks = count;
     Box::into_raw(landmarks) as *mut Landmark
 }
 
-// Dummy implementation of detect_faces
-#[unsafe(no_mangle)]
+// Implementation of detect_faces using BlazeFace
+#[no_mangle]
 pub unsafe extern "C" fn detect_faces(frame: Frame, num_faces: *mut usize) -> *mut Face {
-    // Pad the frame to 1:1 aspect ratio
-    let padded_frame = pad_frame(&frame);
-
-    println!(
-        "Original image shape: {}x{} \nPadded size: {}x{}",
-        frame.height, frame.width,
-        padded_frame.height(), padded_frame.width()
-    );
-
-    // Simulate 1 face
-    let count = 1;
-    let faces = Box::new([Face { x: 100.0, y: 100.0, width: 200.0, height: 200.0 }; 1]);
-    *num_faces = count;
-    Box::into_raw(faces) as *mut Face
+    let blazeface = get_blazeface();
+    let (faces, _padded_image) = blazeface.detect_faces(&frame);
+    // println!("Detected {} faces", faces.len());
+    // println!("Padded image dimensions: {}x{}", _padded_image.width(), _padded_image.height());
+    *num_faces = faces.len();
+    let faces_ptr = faces.into_boxed_slice();
+    Box::into_raw(faces_ptr) as *mut Face
 }
 
 // Export the plugin interface
-#[unsafe(no_mangle)]
+#[no_mangle]
 pub extern "C" fn get_plugin_interface() -> PluginInterface {
-    PluginInterface {   
+    PluginInterface {
         detect_landmarks: Some(detect_landmarks),
         detect_faces: Some(detect_faces),
     }
