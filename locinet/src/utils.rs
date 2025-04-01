@@ -1,4 +1,4 @@
-use image::{ImageBuffer, Rgb};
+use image::{imageops, ImageBuffer, Rgb};
 use visioncore_plugin::Frame;
 
 
@@ -32,4 +32,23 @@ pub fn pad_frame(frame: &Frame) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
     }
     
     padded_frame
+}
+
+pub fn resize_image(image: &ImageBuffer<Rgb<u8>, Vec<u8>>, target_size: u32) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+    let resized_image = imageops::resize(image,
+        target_size, target_size,
+        imageops::FilterType::Nearest);
+
+    
+    resized_image
+}
+
+
+pub fn normalize_image(image: &ImageBuffer<Rgb<u8>, Vec<u8>>) -> Vec<f32> {
+    let mut data: Vec<f32> = image
+        .pixels()
+        .flat_map(|p| p.0.iter().map(|&v| v as f32 / 255.0))
+        .collect();
+
+    data
 }

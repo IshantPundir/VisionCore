@@ -1,6 +1,6 @@
 use visioncore_plugin::{Frame, Face};
 use image::{ImageBuffer, Rgb};
-use crate::utils::pad_frame;
+use crate::utils::{pad_frame, resize_image, normalize_image};
 
 pub struct BlazeFace {
     // Placeholder for TFLite model (to be added later)
@@ -15,10 +15,13 @@ impl BlazeFace {
         // Pad the image to a square
         let padded_image = pad_frame(frame);
 
-        // TODO: Resize the padded image to 128x128
+        // Resize the padded image to 128x128
+        let resized_image = resize_image(&padded_image, 128);
 
-        // TODO: Normalize the resized image
-
+        // Normalize the resized image
+        let normalized_image = normalize_image(&resized_image);
+        // println!("Normalized image: {:?}", normalized_image);
+        
         // TODO: Run the model
 
         // TODO: Post-process the model output
