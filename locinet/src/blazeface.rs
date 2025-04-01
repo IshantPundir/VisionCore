@@ -8,7 +8,6 @@ use crate::utils::{normalize_image, pad_frame, resize_image};
 
 pub struct BlazeFace<'a> {
     interpreter: Interpreter<'a, BuiltinOpResolver>,
-    input_details: Vec<TensorInfo>,
 }
 
 impl<'a> BlazeFace<'a> {
@@ -28,12 +27,7 @@ impl<'a> BlazeFace<'a> {
         interpreter.allocate_tensors()
             .map_err(|e| format!("Failed to allocate tensors: {:?}", e)).expect("Failed to allocate tensors");
         
-        // Get the input tensor details
-        let input_details = interpreter.get_input_details().expect("Failed to get input details");
-        assert_eq!(input_details.len(), 1, "Expected exactly one input tensor");
-        assert_eq!(input_details[0].dims, vec![1, 128, 128, 3], "Input tensor shape mismatch");
-        
-        Ok(BlazeFace { interpreter, input_details })
+        Ok(BlazeFace { interpreter })
     }
 
     pub fn detect_faces(&mut self, frame: &Frame) -> Vec<Face> {
@@ -59,12 +53,25 @@ impl<'a> BlazeFace<'a> {
         // Copy the input data into the tensor buffer
         input_tensor_bytes.copy_from_slice(&normalized_image.data);
         
-    
         // Run inference
         self.interpreter.invoke()
             .expect("Inference failed");
     
+        // Retrieve the output tensors
+        let output_delta_index = self.interpreter.outputs()[0];
+        let output_score_index = self.interpreter.outputs()[1];            
+
+        let deltas: &[f32] = self.interpreter.tensor_data(output_delta_index)
+            .expect("Failed to get output tensor data");
+        let scores: &[f32] = self.interpreter.tensor_data(output_score_index)
+            .expect("Failed to get output tensor data");
+        
+
+        println!("Deltas: {:?}", deltas.len());
+        println!("Scores: {:?}", scores.len());
         // TODO: Post-process the outputs to get faces
+        
+
         let faces = vec![Face {
             x: 100.0,
             y: 100.0,
