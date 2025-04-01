@@ -20,6 +20,7 @@ pub unsafe extern "C" fn detect_landmarks(frame: Frame, num_landmarks: *mut usiz
 // Dummy implementation of detect_faces
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn detect_faces(frame: Frame, num_faces: *mut usize) -> *mut Face {
+    println!("Processing frame: {:?}", frame.data);
     // Simulate 1 face
     let count = 1;
     let faces = Box::new([Face { x: 100.0, y: 100.0, width: 200.0, height: 200.0 }; 1]);
