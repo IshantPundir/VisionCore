@@ -9,12 +9,12 @@ use std::path::Path;
 // Global BlazeFace instance (initialized once)
 static BLAZEFACE: OnceLock<Mutex<BlazeFace<'static>>> = OnceLock::new();
 
-fn get_blazeface() -> std::sync::MutexGuard<'static, BlazeFace<'static>> {
+fn get_blazeface() -> &'static Mutex<BlazeFace<'static>> {
     BLAZEFACE.get_or_init(|| {
-        let blazeface = BlazeFace::new(Path::new("/home/ishant/Projects/OsmOS/LociNet/output/MediaPipe_FaceLandmarker_V2_Extracted/face_detector.tflite"))
+        let blazeface = BlazeFace::new(Path::new("/home/ishant/Projects/OsmOS/VisionCore/locinet/models/face_detector.tflite"))
             .expect("Failed to load BlazeFace model");
         Mutex::new(blazeface)
-    }).lock().expect("Failed to acquire mutex lock")
+    })
 }
 
 // Dummy implementation of detect_landmarks (unchanged for now)
@@ -36,11 +36,29 @@ pub unsafe extern "C" fn detect_landmarks(_frame: Frame, num_landmarks: *mut usi
 // Implementation of detect_faces using BlazeFace
 #[no_mangle]
 pub unsafe extern "C" fn detect_faces(frame: Frame, num_faces: *mut usize) -> *mut Face {
-    let mut blazeface = get_blazeface(); // Returns MutexGuard<BlazeFace<'static>>
-    let faces = blazeface.detect_faces(&frame); // Calls detect_faces on &mut BlazeFace
-    *num_faces = faces.len();
-    let faces_ptr = faces.into_boxed_slice();
-    Box::into_raw(faces_ptr) as *mut Face
+    let blazeface = get_blazeface();
+    match blazeface.lock() {
+        Ok(mut blazeface) => {
+            let faces = blazeface.detect_faces(&frame).unwrap_or_else(|| Vec::new());
+            *num_faces = faces.len();
+            println!("Detected {} faces", faces.len());
+            let faces_box = faces.into_boxed_slice();
+            Box::into_raw(faces_box) as *mut Face
+        }
+        Err(e) => {
+            eprintln!("Failed to acquire mutex lock: {:?}", e);
+            *num_faces = 0;
+            let empty_slice = Box::new([]) as Box<[Face]>;
+            Box::into_raw(empty_slice) as *mut Face
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn free_faces(faces: *mut Face, num_faces: usize) {
+    if !faces.is_null() {
+        let _ = Box::from_raw(std::slice::from_raw_parts_mut(faces, num_faces));
+    }
 }
 
 // Export the plugin interface
@@ -49,5 +67,6 @@ pub extern "C" fn get_plugin_interface() -> PluginInterface {
     PluginInterface {
         detect_landmarks: Some(detect_landmarks),
         detect_faces: Some(detect_faces),
+        free_faces: Some(free_faces),
     }
 }

@@ -19,19 +19,17 @@ pub struct Landmark {
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct Face {
-    pub x: f32,      // Top-left corner
-    pub y: f32,
-    pub width: f32,  // Bounding box width
-    pub height: f32, // Bounding box height
+    pub bbox: [f32; 4],
+    pub score: f32,
 }
 
 // Function pointer types for sub-service capabilities
 pub type DetectLandmarksFn = unsafe extern "C" fn(frame: Frame, num_landmarks: *mut usize) -> *mut Landmark;
 pub type DetectFacesFn = unsafe extern "C" fn(frame: Frame, num_faces: *mut usize) -> *mut Face;
 
-// Plugin interface struct
 #[repr(C)]
 pub struct PluginInterface {
     pub detect_landmarks: Option<DetectLandmarksFn>,
     pub detect_faces: Option<DetectFacesFn>,
+    pub free_faces: Option<unsafe extern "C" fn(*mut Face, usize)>,
 }

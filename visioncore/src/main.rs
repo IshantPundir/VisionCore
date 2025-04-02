@@ -44,11 +44,15 @@ impl SubService {
         if let Some(detect_faces) = self.interface.detect_faces {
             let mut num_faces = 0;
             let faces_ptr = unsafe { detect_faces(*frame, &mut num_faces) };
+            if faces_ptr.is_null() {
+                return None;
+            }
             let faces = unsafe {
                 let slice = std::slice::from_raw_parts(faces_ptr, num_faces);
                 let vec = slice.to_vec();
-                // Deallocate the memory
-                let _ = Box::from_raw(faces_ptr);
+                if let Some(free_faces) = self.interface.free_faces {
+                    free_faces(faces_ptr, num_faces);
+                }
                 vec
             };
             Some(faces)
@@ -144,6 +148,11 @@ pub fn main() -> anyhow::Result<()> {
         // Call detect faces!
         if let Some(faces) = locinet.detect_faces(&frame) {
             println!("Detected {} faces:", faces.len());
+            for face in faces {
+                println!("Face: {:?} {:?}", face.bbox, face.score);
+            }
+        } else {
+            println!("No faces detected");
         }
     }
     // // Simulate a frame (dummy RGB data)
