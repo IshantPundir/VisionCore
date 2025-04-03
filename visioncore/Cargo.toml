@@ -10,3 +10,4 @@ nokhwa = { version = "0.10.7", features = ["input-native"] }
 serde_json = "1.0.140"
 visioncore-plugin = { path = "../visioncore-plugin" }
 zmq = "0.10.0"
+locinet = { path = "../locinet" } 
