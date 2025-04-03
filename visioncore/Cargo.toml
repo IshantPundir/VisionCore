@@ -8,3 +8,4 @@ anyhow = "1.0.97"
 libloading = "0.8.6"
 nokhwa = { version = "0.10.7", features = ["input-native"] }
 visioncore-plugin = { path = "../visioncore-plugin" }
+zmq = "0.10.0"

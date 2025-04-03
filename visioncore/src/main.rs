@@ -2,6 +2,8 @@ use nokhwa::utils::{RequestedFormat, RequestedFormatType};
 use visioncore_plugin::{Frame, Landmark, Face, PluginInterface};
 use libloading::{Library, Symbol};
 use anyhow;
+use zmq::SocketType::PUB;
+use zmq::{Context, SocketType};
 use std::thread;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -99,6 +101,12 @@ pub fn main() -> anyhow::Result<()> {
     let locinet = SubService::load("../sub_services/liblocinet.so")?;
     println!("Welcome to VisionCore!");
 
+    // Initialize ZeroMQ context and publisher
+    let zmq_context = Context::new();
+    let publisher = zmq_context.socket(SocketType::PUB)?;
+    publisher.connect("tcp://localhost:5555")?;
+    let topic = "VisionCore/face_position";
+    
     // Initialize the frame buffer
     let frame_buffer = Arc::new(Mutex::new(FrameBuffer::new()));
     let frame_buffer_clone = Arc::clone(&frame_buffer);
@@ -132,29 +140,52 @@ pub fn main() -> anyhow::Result<()> {
     thread::sleep(Duration::from_secs(1));
     println!("Camera started!");
 
-
     loop {
         let frame = {
             let buffer = frame_buffer.lock().unwrap();
             buffer.to_frame()
         };
 
-        // Keep the frame data alive for the duration of the call
         let _frame_data = {
             let buffer = frame_buffer.lock().unwrap();
             buffer.data.clone()
         };
 
-        // Call detect faces!
         if let Some(faces) = locinet.detect_faces(&frame) {
             println!("Detected {} faces:", faces.len());
-            for face in faces {
+            for face in &faces {
                 println!("Face: {:?} {:?}", face.bbox, face.score);
+                // Publish face position (x, y) to Soul
+                let data = format!("x:{},y:{}", face.bbox[0], face.bbox[1]);
+                publisher.send_multipart(&[topic.as_bytes(), data.as_bytes()], 0)?;
             }
         } else {
             println!("No faces detected");
         }
     }
+
+    // loop {
+    //     let frame = {
+    //         let buffer = frame_buffer.lock().unwrap();
+    //         buffer.to_frame()
+    //     };
+
+    //     // Keep the frame data alive for the duration of the call
+    //     let _frame_data = {
+    //         let buffer = frame_buffer.lock().unwrap();
+    //         buffer.data.clone()
+    //     };
+
+    //     // Call detect faces!
+    //     if let Some(faces) = locinet.detect_faces(&frame) {
+    //         println!("Detected {} faces:", faces.len());
+    //         for face in faces {
+    //             println!("Face: {:?} {:?}", face.bbox, face.score);
+    //         }
+    //     } else {
+    //         println!("No faces detected");
+    //     }
+    // }
     // // Simulate a frame (dummy RGB data)
     // let dummy_frame_data: Vec<u8> = vec![255; 640 * 480 * 3]; // 640x480 RGB frame
     // let frame = Frame {
