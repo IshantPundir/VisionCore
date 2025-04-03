@@ -154,7 +154,7 @@ pub fn main() -> anyhow::Result<()> {
         if let Some(faces) = locinet.detect_faces(&frame) {
             println!("Detected {} faces:", faces.len());
             for face in &faces {
-                println!("Face: {:?} {:?}", face.bbox, face.score);
+                println!("Face: {:?} | Score: {:?} | Center: {:?} ", face.bbox, face.score, face.center);
                 // Publish face position (x, y) to Soul
                 let data = format!("x:{},y:{}", face.bbox[0], face.bbox[1]);
                 publisher.send_multipart(&[topic.as_bytes(), data.as_bytes()], 0)?;

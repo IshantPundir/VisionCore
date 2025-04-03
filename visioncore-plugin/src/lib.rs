@@ -23,6 +23,8 @@ pub struct Face {
     pub bbox_raw: [f32; 4],
     pub center: [f32; 2],
     pub score: f32,
+    pub frame_h: i32,
+    pub frame_w: i32
 }
 
 impl Face {
@@ -39,7 +41,9 @@ impl Face {
             ],
             bbox_raw: bbox,
             center,
-            score
+            score,
+            frame_h: image_h,
+            frame_w: image_w
         }
     }
 
