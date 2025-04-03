@@ -1,10 +1,9 @@
 use image::{imageops, ImageBuffer, Rgb};
-use visioncore_plugin::Frame;
+use visioncore_plugin::{Face, Frame};
 
 #[derive(Debug)]
 pub struct ImageTensor {
     pub data: Vec<f32>,
-    pub shape: [usize; 4],
 }
 
 impl ImageTensor {
@@ -15,7 +14,7 @@ impl ImageTensor {
             "Data length must match the shape"
         );
         
-        Self { data, shape: [batch_size, height, width, channels] }
+        Self { data }
     }
 }
 
@@ -119,13 +118,21 @@ fn calculate_iou(box1: [f32; 4], box2: [f32; 4]) -> f32 {
     inter_area / (box1_area + box2_area - inter_area)
 }
 
-pub fn adjust_anchors(anchors: &Vec<[f32; 4]>, deltas: &Vec<Vec<f32>>, scores: &Vec<f32>, input_size: f32, iou_threshold: f32) -> (Vec<[f32; 4]>, Vec<f32>) {
+pub fn get_faces_from_anchors(anchors: &Vec<[f32; 4]>,
+    deltas: &Vec<Vec<f32>>,
+    scores: &Vec<f32>,
+    input_size: f32,
+    iou_threshold: f32,
+    image_h: i32, image_w: i32) -> Vec<Face> {
+    
     // Verify input lengths
     assert_eq!(anchors.len(), deltas.len(), "Anchors and deltas must have the same length");
     assert_eq!(anchors.len(), scores.len(), "Anchors and scores must have the same length");
 
     // Initialize variables
     let mut bboxes: Vec<[f32; 4]> = Vec::with_capacity(anchors.len());
+    let mut centers: Vec<[f32; 2]> = Vec::with_capacity(anchors.len());
+
     for (anchor, delta) in anchors.iter().zip(deltas) {
         // Normalize deltas
         let dy = delta[0] / input_size;
@@ -135,7 +142,7 @@ pub fn adjust_anchors(anchors: &Vec<[f32; 4]>, deltas: &Vec<Vec<f32>>, scores: &
 
         // Adjust center
         let cy = anchor[0] + dy * anchor[2];
-        let cx = anchor[1] + dx * anchor[3];
+        let cx: f32 = anchor[1] + dx * anchor[3];
 
         // Adjust size
         let h = dh;
@@ -148,6 +155,7 @@ pub fn adjust_anchors(anchors: &Vec<[f32; 4]>, deltas: &Vec<Vec<f32>>, scores: &
         let x_max = (cx + w / 2.0).clamp(0.0, 1.0);
 
         bboxes.push([y_min, x_min, y_max, x_max]);
+        centers.push([cy, cx]);
     };
 
     // Sort by scores in descending order
@@ -155,38 +163,24 @@ pub fn adjust_anchors(anchors: &Vec<[f32; 4]>, deltas: &Vec<Vec<f32>>, scores: &
     indices.sort_by(|&a, &b| scores[b].partial_cmp(&scores[a]).unwrap_or(std::cmp::Ordering::Equal));
 
     // Apply non-maximum suppression (NMS)
-    let mut selected_boxes = Vec::new();
-    let mut selected_scores = Vec::new();
+    let mut faces: Vec<Face> = Vec::new();
 
     for i in indices {
         let bbox = bboxes[i];
         let mut keep = true;
 
-        for &selected_box in &selected_boxes {
-            if calculate_iou(bbox, selected_box) > iou_threshold {
+        for &face in &faces {
+            if calculate_iou(bbox, face.bbox_raw) > iou_threshold {
                 keep = false;
                 break;
             }
         }
 
         if keep {
-            selected_boxes.push(bbox);
-            selected_scores.push(scores[i]);
+            faces.push(Face::new(bbox, centers[i], scores[i], image_h, image_w));
         }
     }
 
-    (selected_boxes, selected_scores)
+    faces
 
-}
-
-pub fn scale_bbox(bbox: [f32; 4], image_h: i32, image_w: i32) -> [i32; 4] {
-    let (y_min, x_min, y_max, x_max) = (bbox[0], bbox[1], bbox[2], bbox[3]);
-
-    // Scale the bbox to the original image
-    let y_min = (y_min * image_h as f32) as i32;
-    let x_min = (x_min * image_w as f32) as i32;
-    let y_max = (y_max * image_h as f32) as i32;
-    let x_max = (x_max * image_w as f32) as i32;
-
-    [y_min, x_min, y_max, x_max]
 }

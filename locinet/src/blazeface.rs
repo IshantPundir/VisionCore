@@ -4,7 +4,7 @@ use std::sync::OnceLock;
 use tflite::{FlatBufferModel, Interpreter, InterpreterBuilder};
 use tflite::ops::builtin::BuiltinOpResolver;
 use visioncore_plugin::{Frame, Face};
-use crate::utils::{normalize_image, pad_frame, resize_image, generate_anchors, adjust_anchors, scale_bbox};
+use crate::utils::{generate_anchors, get_faces_from_anchors, normalize_image, pad_frame, resize_image};
 
 static ANCHORS: OnceLock<Vec<[f32; 4]>> = OnceLock::new();
 
@@ -56,30 +56,17 @@ impl BlazeFaceOutputs {
         // Build valid anchors without unnecessary cloning
         let valid_anchors: Vec<[f32; 4]> = valid_indices.iter().map(|&i| anchors[i]).collect();
 
-        // Adjust anchors
-        let (adjusted_anchors, adjusted_scores) = adjust_anchors(
+        // Get faces from anchors
+        let faces = get_faces_from_anchors(
             &valid_anchors,
             &best_deltas,
             &valid_scores,
             128.0,
             iou_threshold,
+            image_h,
+            image_w
         );
-
-        // Convert to Face structs with pre-allocated capacity
-        let mut faces = Vec::with_capacity(adjusted_anchors.len());
-        for (bbox, score) in adjusted_anchors.iter().zip(adjusted_scores) {
-            let [y_min, x_min, y_max, x_max] = scale_bbox(*bbox, image_h, image_w);
-            faces.push(Face {
-                bbox: [
-                    x_min as f32,
-                    y_min as f32,
-                    (x_max - x_min) as f32,
-                    (y_max - y_min) as f32,
-                ],
-                score,
-            });
-        }
-
+        
         Self { faces }
     }
 }
