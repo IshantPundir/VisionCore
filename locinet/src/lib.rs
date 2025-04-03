@@ -5,14 +5,32 @@ mod blazeface;
 use visioncore_plugin::{Frame, Landmark, Face, PluginInterface};
 use blazeface::BlazeFace;
 use std::sync::{Mutex, OnceLock};
-use std::path::Path;
+use std::path::PathBuf;
+use std::env;
+
 // Global BlazeFace instance (initialized once)
 static BLAZEFACE: OnceLock<Mutex<BlazeFace<'static>>> = OnceLock::new();
 
 fn get_blazeface() -> &'static Mutex<BlazeFace<'static>> {
     BLAZEFACE.get_or_init(|| {
-        let blazeface = BlazeFace::new(Path::new("/home/ishant/Projects/OsmOS/VisionCore/locinet/models/face_detector.tflite"))
-            .expect("Failed to load BlazeFace model");
+        // Read the model path from an environment variable, with a fallback
+        let model_path = env::var("LOCINET_MODEL_PATH")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| {
+                // Fallback to a relative path
+                let mut path = PathBuf::from("models");
+                path.push("face_detector.tflite");
+                path
+            });
+
+        // Ensure the model file exists
+        if !model_path.exists() {
+            eprintln!("BlazeFace model file not found at: {:?}", model_path);
+            panic!("Cannot initialize BlazeFace: model file missing");
+        }
+
+        let blazeface = BlazeFace::new(&model_path)
+            .unwrap_or_else(|e| panic!("Failed to load BlazeFace model: {}", e));
         Mutex::new(blazeface)
     })
 }
