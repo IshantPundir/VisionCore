@@ -2,12 +2,12 @@ use nokhwa::utils::{RequestedFormat, RequestedFormatType};
 use visioncore_plugin::{Frame, Landmark, Face, PluginInterface};
 use libloading::{Library, Symbol};
 use anyhow;
-use zmq::SocketType::PUB;
 use zmq::{Context, SocketType};
 use std::thread;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use nokhwa::{Camera, pixel_format::RgbFormat};
+use serde_json;
 
 // Wrapper for the loaded sub-service
 struct SubService {
@@ -152,15 +152,16 @@ pub fn main() -> anyhow::Result<()> {
         };
 
         if let Some(faces) = locinet.detect_faces(&frame) {
-            println!("Detected {} faces:", faces.len());
+            // println!("Detected {} faces:", faces.len());
             for face in &faces {
-                println!("Face: {:?} | Score: {:?} | Center: {:?} ", face.bbox, face.score, face.center);
-                // Publish face position (x, y) to Soul
-                let data = format!("x:{},y:{}", face.bbox[0], face.bbox[1]);
+                // println!("Face: {:?} | Score: {:?} | Center: {:?} ", face.bbox, face.score, face.center);
+                // Serialize the Face struct to a JSON string
+                let data = serde_json::to_string(&face)?;
+
                 publisher.send_multipart(&[topic.as_bytes(), data.as_bytes()], 0)?;
             }
         } else {
-            println!("No faces detected");
+            // println!("No faces detected");
         }
     }
 

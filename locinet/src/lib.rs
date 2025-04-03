@@ -41,7 +41,7 @@ pub unsafe extern "C" fn detect_faces(frame: Frame, num_faces: *mut usize) -> *m
         Ok(mut blazeface) => {
             let faces = blazeface.detect_faces(&frame).unwrap_or_else(|| Vec::new());
             *num_faces = faces.len();
-            println!("Detected {} faces", faces.len());
+            // println!("Detected {} faces", faces.len());
             let faces_box = faces.into_boxed_slice();
             Box::into_raw(faces_box) as *mut Face
         }

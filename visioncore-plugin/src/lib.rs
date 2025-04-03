@@ -1,3 +1,5 @@
+use serde::{Serialize, Deserialize};
+
 // Types for frames, landmarks, and faces
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -17,7 +19,7 @@ pub struct Landmark {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Face {
     pub bbox: [f32; 4],
     pub bbox_raw: [f32; 4],

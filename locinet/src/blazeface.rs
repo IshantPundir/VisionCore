@@ -66,7 +66,7 @@ impl BlazeFaceOutputs {
             image_h,
             image_w
         );
-        
+
         Self { faces }
     }
 }
@@ -121,12 +121,12 @@ impl<'a> BlazeFace<'a> {
             frame.width as i32,
         );
 
-        println!("BlazeFaceOutputs faces length: {}", outputs.faces.len());
+        // println!("BlazeFaceOutputs faces length: {}", outputs.faces.len());
         if outputs.faces.is_empty() {
-            println!("Returning None: no faces detected");
+            // println!("Returning None: no faces detected");
             None
         } else {
-            println!("Returning Some(faces) with length: {}", outputs.faces.len());
+            // println!("Returning Some(faces) with length: {}", outputs.faces.len());
             Some(outputs.faces)
         }
     }
