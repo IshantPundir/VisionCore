@@ -4,3 +4,5 @@ members = [
     "locinet",
     "visioncore-plugin",
 ]
+
+resolver = "3"
