@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+name = "locinet"
+crate-type = ["rlib"]  # Changed from "cdylib"
 
 [dependencies]
 image = "0.25.6"

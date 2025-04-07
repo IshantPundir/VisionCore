@@ -13,16 +13,6 @@ VisionCore serves as the central hub for computer vision in OsmOS, interfacing w
 - Efficient memory management with proper allocation and deallocation of resources.
 - Scalable design for future computer vision tasks (e.g., object detection, pose estimation).
 
-## Project Details
-
-- **Purpose**: Captures video frames, interfaces with sub-services, and processes the results for computer vision tasks in OsmOS.
-- **Key Files**:
-  - `src/main.rs`: Main application logic, including camera capture, frame buffering, and sub-service interaction.
-- **Dependencies**:
-  - `nokhwa`: For camera access.
-  - `libloading`: For dynamic loading of sub-services.
-  - `visioncore-plugin`: For the plugin interface.
-
 ## Setup Instructions
 
 1. **Install Prerequisites**:
@@ -30,68 +20,48 @@ VisionCore serves as the central hub for computer vision in OsmOS, interfacing w
      ```bash
      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
      ```
-   - **Camera Support**: The `nokhwa` crate is used for camera access. Ensure you have a compatible camera and the necessary permissions.
-     - On Linux, you may need `libv4l-dev`:
-       ```bash
-       sudo apt-get install libv4l-dev
-       ```
 
-2. **Build `visioncore-plugin`** (required dependency):
+2. **Build `VisionCore`**:
    ```bash
-   cd ../visioncore-plugin
-   cargo build --release
-   cd ../visioncore
+   cargo build
    ```
 
-3. **Build `locinet`** (required sub-service):
-   - Ensure the BlazeFace model file (`face_detector.tflite`) is placed at `../locinet/models/face_detector.tflite`.
-   - Build the sub-service:
-     ```bash
-     cd ../locinet
-     cargo build --release
-     cd ../visioncore
-     ```
-
-4. **Build `visioncore`**:
+3. **Run `VisionCore` on development machine**:
    ```bash
-   cargo build --release
+   ./target/debug/visioncore 
    ```
 
-## Contributing
-
-Contributions are welcome! To contribute:
-
-1. **Fork the Repository**:
+4. **Specify model path** (optional):
    ```bash
-   git clone <your-forked-repo-url>
-   cd VisionCore/visioncore
+   export LOCINET_MODEL_PATH="/path/to/your/face_detector.tflite"
+   ./target/debug/visioncore 
    ```
 
-2. **Create a Feature Branch**:
+## Deploying to OsmOS running on Jetson Nano
+0. Get sysroot for Jetson Nano:
    ```bash
-   git checkout -b feature/your-feature-name
+   git clone https://github.com/IshantPundir/Jetson-Toolchain.git
+   cd Jetson-Toolchain
+   ./sync-sysroot.sh
    ```
 
-3. **Make Changes**:
-   - Follow Rust coding standards (e.g., use `cargo fmt` and `cargo clippy`).
-   - Add tests if applicable.
-   - Update documentation as needed.
+   Copy the absolute path of the sysroot to `JETSON_SYSROOT_PATH` environment variable.
 
-4. **Submit a Pull Request**:
-   - Push your changes to your fork:
-     ```bash
-     git push origin feature/your-feature-name
-     ```
-   - Open a pull request on GitHub with a detailed description of your changes.
+1. **Build `VisionCore`**:
+   ```bash
+   export JETSON_SYSROOT_PATH="/path/to/jetson-sysroot"
+   ./deploy.sh -c
+   ```
 
-## Future Improvements
-- **Extended Vision Tasks**: Integrate additional computer vision tasks (e.g., object detection, pose estimation) as new sub-services.
-- **Performance Optimization**: Explore parallel processing for frame handling and sub-service calls.
-- **Error Handling**: Add more robust error handling for camera failures and sub-service errors.
+2. **Copy `VisionCore` to Jetson Nano**:
+   ```bash
+   scp -r deploy/aarch64 <hostname>@<ip-address>:/home/jetson
+   ```
 
+3. **Run `VisionCore`**:
 
-## Future Improvements
-- **Landmark Detection**: Implement `detect_landmarks` for facial landmark detection.
-- **Performance Optimization**: Explore SIMD or parallel processing for score computation and anchor adjustment.
-- **Error Handling**: Add more robust error handling in `BlazeFace::detect_faces` to handle inference failures gracefully.
-- **Model Support**: Add support for additional face detection models or frameworks (e.g., ONNX, `tract-tflite`).
+   SSH into Jetson Nano and run `VisionCore`:
+   ```bash
+   cd aarch64
+   ./visioncore/visioncore
+   ```

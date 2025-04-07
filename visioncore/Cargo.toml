@@ -1,13 +1,12 @@
 [package]
 name = "visioncore"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
-anyhow = "1.0.97"
-libloading = "0.8.6"
 nokhwa = { version = "0.10.7", features = ["input-native"] }
-serde_json = "1.0.140"
-visioncore-plugin = { path = "../visioncore-plugin" }
+anyhow = "1.0"
 zmq = "0.10.0"
-locinet = { path = "../locinet" } 
+serde_json = "1.0"
+visioncore-plugin = { path = "../visioncore-plugin" }
+locinet = { path = "../locinet" }  # Add locinet as a dependency

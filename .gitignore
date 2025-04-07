@@ -1,6 +1,7 @@
 # Rust build artifacts
 /target/
 /**/target/
+/deploy/
 
 # Shared library directory (sub_services)
 # Uncomment the line below if you don't want to track the .so files
@@ -22,3 +23,7 @@
 
 # Logs and other generated files
 *.log
+
+# Ignore all Cargo.lock files
+Cargo.lock
+**/Cargo.lock
