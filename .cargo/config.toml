@@ -1,10 +1,3 @@
 [target.aarch64-unknown-linux-gnu]
-linker = "aarch64-linux-gnu-gcc-9"
-ar = "aarch64-linux-gnu-ar"
-rustflags = [
-  "-C", "link-arg=--sysroot=/home/ishant/Projects/OsmOS/Jetson-Toolchain/sysroot",
-  "-C", "link-arg=-fuse-ld=gold",
-  "-C", "link-arg=-static-libstdc++",
-  "-C", "link-arg=-static-libgcc",
-  "-C", "target-feature=+crt-static"
-]
+linker = "aarch64-poky-linux-gcc"
+rustflags = ["-C", "link-arg=--sysroot=/opt/poky/4.0.26/sysroots/armv8a-poky-linux"]

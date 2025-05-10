@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Default values
-SYSROOT="${JETSON_SYSROOT_PATH:-$HOME/jetson-sysroot}"
+SYSROOT="${JETSON_SYSROOT_PATH:-$HOME/sysroot}"
 OUTPUT_DIR="deploy/aarch64"
 MODEL_FILE="locinet/models/face_detector.tflite"
 TARGET="aarch64-unknown-linux-gnu"

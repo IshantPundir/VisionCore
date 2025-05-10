@@ -4,9 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-nokhwa = { version = "0.10.7", features = ["input-native"] }
 anyhow = "1.0"
 zmq = "0.10.0"
 serde_json = "1.0"
-visioncore-plugin = { path = "../visioncore-plugin" }
 locinet = { path = "../locinet" }  # Add locinet as a dependency
+visioncore-plugin = { path = "../visioncore-plugin" }
+
+nokhwa = { version = "0.10.7", features = ["input-native"], optional = true }
+gstreamer = { version = "0.23.5", optional = true }
+gstreamer-app = { version = "0.23.5", optional = true }
+
+[features]
+default = ["nokhwa"]
+csi = ["gstreamer", "gstreamer-app"]
